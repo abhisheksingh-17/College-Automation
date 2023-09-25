@@ -1,45 +1,32 @@
+import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 import pandas as pd
-import time
 
-# Set up Chrome WebDriver (Ensure you have Chrome and ChromeDriver installed)
-driver = webdriver.Chrome('X:\\Laptop Stuff\\Softwares\\Coding\\Software\\chromedriver-win64\\chromedriver.exe')  # Replace with the path to your chromedriver executable
+# Create Chrome options
+chrome_options = Options()
 
-# Navigate to the website
-driver.get('https://www.usnews.com/best-graduate-schools/top-science-schools/computer-science-rankings')
+# Initialize Chrome WebDriver with the specified options
+driver = webdriver.Chrome(options=chrome_options)
 
-# Create an empty list to store the data
-professors_data = []
+# Navigate to the webpage containing the list of universities
+driver.get('https://www.stilt.com/blog/2018/01/top-100-us-universities-computer-science/')
 
-# Find and loop through the "Next" button to navigate through multiple pages
-while True:
-    # Find the table containing the list of computer science professors
-    professors_table = driver.find_element(By.CLASS_NAME, 'SortableTablestyles__StyledTable-sc-12knbw7-0')
+# Find all the <td> elements that contain university names using the correct method
+university_td_elements = driver.find_elements(By.CSS_SELECTOR, 'td')
 
-    # Iterate through each row in the table
-    for row in professors_table.find_elements(By.TAG_NAME, 'tr'):
-        columns = row.find_elements(By.TAG_NAME, 'td')
-        if len(columns) >= 4:  # Ensure the row has enough columns (including email)
-            professor_name = columns[0].text
-            department = columns[1].text
-            mobile_no = columns[2].text
-            email = columns[3].text  # Modify this to extract email
-            professors_data.append([professor_name, department, mobile_no, email])
+# Extract the text (university names) from the <td> elements and clean them using regex
+universities = [re.sub(r'\[[^\]]*\]|\d+|No|R-Rank|S-Rank|Institution Name', '', element.text.strip()) for element in university_td_elements]
 
-    # Check if there is a "Next" button to go to the next page
-    next_button = driver.find_element(By.PARTIAL_LINK_TEXT, 'Next')
-    if 'disabled' in next_button.get_attribute('class'):
-        break  # No more pages, exit the loop
-    else:
-        next_button.click()  # Go to the next page
-        time.sleep(2)  # Optional: Add a delay to allow the page to load
+# Remove empty strings (if any) from the list
+universities = [uni.strip() for uni in universities if uni.strip()]
 
-# Create a DataFrame from the collected data
-df = pd.DataFrame(professors_data, columns=['Name of the Professor', 'Department', 'Mobile No', 'Email'])
+# Create a DataFrame from the collected university names
+df = pd.DataFrame({'University Name': universities})
 
 # Save the data to an Excel file
-df.to_excel('Computer_Science_Professors.xlsx', index=False)
+df.to_excel('Top_100_US_Universities_for_Computer_Science.xlsx', index=False)
 
 # Close the WebDriver
 driver.quit()
